@@ -376,8 +376,8 @@ export default function MaintenancePage() {
             </div>
           </div>
 
-          {/* Log Table */}
-          <div className="overflow-x-auto">
+          {/* Desktop Table View (hidden on mobile) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold text-[11px] tracking-wider border-b border-slate-800">
                 <tr>
@@ -447,6 +447,74 @@ export default function MaintenancePage() {
                 ))}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Responsive Cards View (shown on mobile, hidden on desktop) */}
+          <div className="md:hidden space-y-3">
+            {filteredLogs.map((log) => (
+              <div
+                key={log.id}
+                className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 shadow-md"
+              >
+                <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                  <div className="flex items-center space-x-2">
+                    <span className="font-mono font-bold text-amber-400 text-xs">{log.id}</span>
+                    <span
+                      className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                        log.tipo === 'Preventiva'
+                          ? 'bg-blue-500/20 text-blue-400 border border-blue-500/30'
+                          : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                      }`}
+                    >
+                      {log.tipo}
+                    </span>
+                  </div>
+                  <span
+                    className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                      log.estado === 'Completada'
+                        ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                        : log.estado === 'En Taller'
+                        ? 'bg-rose-500/20 text-rose-400 border border-rose-500/30'
+                        : 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                    }`}
+                  >
+                    {log.estado}
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase block font-semibold">Equipo:</span>
+                    <span className="font-bold text-white uppercase">{log.maquina} ({log.numeroInterno})</span>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 uppercase block font-semibold">Horómetro / Fecha:</span>
+                    <span className="text-amber-400 font-mono font-bold">{log.horometroServicio} Hrs</span>
+                    <span className="text-slate-400 text-[10px] block">{log.fecha}</span>
+                  </div>
+                </div>
+
+                <div className="text-xs bg-slate-900 p-2.5 rounded-lg border border-slate-800 space-y-1">
+                  <p className="font-bold text-slate-300 text-[11px]">{log.categoria}</p>
+                  <p className="text-slate-200 text-xs leading-snug">{log.descripcion}</p>
+                  {log.repuestosUtilizados.length > 0 && (
+                    <p className="text-[10px] text-slate-400 italic">
+                      Repuestos: {log.repuestosUtilizados.join(', ')}
+                    </p>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between text-xs">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block font-semibold">Mecánico:</span>
+                    <span className="text-slate-300 font-semibold">{log.mecanicoResponsable}</span>
+                  </div>
+                  <span className="font-mono font-bold text-emerald-400 text-sm">
+                    ${log.costoEstimadoClp.toLocaleString('es-CL')}
+                  </span>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

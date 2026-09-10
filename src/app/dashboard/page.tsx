@@ -298,8 +298,8 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          {/* Table */}
-          <div className="overflow-x-auto">
+          {/* Desktop Table View (hidden on mobile) */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs text-slate-300">
               <thead className="bg-slate-950/80 text-slate-400 uppercase font-semibold text-[11px] tracking-wider border-b border-slate-800">
                 <tr>
@@ -385,6 +385,80 @@ export default function DashboardPage() {
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Mobile Responsive Cards View (shown on mobile, hidden on desktop) */}
+          <div className="md:hidden space-y-3">
+            {filteredReports.length === 0 ? (
+              <div className="py-8 text-center text-slate-500 text-xs">
+                No se encontraron reportes con los filtros seleccionados.
+              </div>
+            ) : (
+              filteredReports.map((report) => (
+                <div
+                  key={report.id}
+                  className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-3 shadow-md"
+                >
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2">
+                    <span className="font-mono font-bold text-amber-400 text-sm">
+                      N° #{report.id}
+                    </span>
+                    <span
+                      className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                        report.estado === 'Firmado'
+                          ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
+                          : report.estado === 'Pendiente V°B°'
+                          ? 'bg-amber-500/20 text-amber-400 border border-amber-500/30'
+                          : 'bg-slate-800 text-slate-400 border border-slate-700'
+                      }`}
+                    >
+                      {report.estado}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs">
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block font-semibold">Faena:</span>
+                      <span className="font-bold text-white uppercase">{report.faena}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block font-semibold">Fecha:</span>
+                      <span className="text-slate-200">{report.fecha}</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block font-semibold">Máquina:</span>
+                      <span className="text-slate-200 font-semibold">{report.maquina} ({report.numeroEquipo})</span>
+                    </div>
+                    <div>
+                      <span className="text-[10px] text-slate-400 uppercase block font-semibold">Operador:</span>
+                      <span className="text-slate-300">{report.operador}</span>
+                    </div>
+                  </div>
+
+                  <div className="pt-2 border-t border-slate-800/80 flex items-center justify-between">
+                    <span className="text-xs font-mono font-bold text-amber-400">
+                      Total: {report.horometro?.totalHoras || report.totalTurno} Hrs
+                    </span>
+
+                    <div className="flex items-center space-x-2">
+                      <Link
+                        href={`/reports/${report.id}`}
+                        className="px-3 py-1.5 bg-amber-500 text-slate-950 font-bold rounded-lg text-xs flex items-center gap-1"
+                      >
+                        <Eye className="w-3.5 h-3.5" /> Ver Ticket
+                      </Link>
+                      <button
+                        onClick={() => handleOpenJsonForReport(report.id)}
+                        className="p-1.5 bg-slate-800 text-amber-400 rounded-lg text-xs border border-slate-700"
+                        title="JSON"
+                      >
+                        <Code className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>
