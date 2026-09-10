@@ -260,7 +260,7 @@ export const Navbar: React.FC = () => {
           }`}
         >
           <PlusCircle className="w-5 h-5 text-amber-400" />
-          <span>Nuevo Vale</span>
+          <span>Nuevo Reporte</span>
         </Link>
 
         <Link
