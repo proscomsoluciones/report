@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Users,
@@ -23,12 +23,23 @@ import {
 import { MOCK_OPERATORS } from '@/data/mockOperators';
 import { OperatorCertification } from '@/types/operator';
 import { JsonModal } from '@/components/JsonModal';
+import { CardsSkeleton } from '@/components/skeletons/CardsSkeleton';
 
 export default function OperatorsPage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [operatorsList, setOperatorsList] = useState<OperatorCertification[]>(MOCK_OPERATORS);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'Todos' | 'Alertas' | 'Vencidas'>('Todos');
   const [isJsonOpen, setIsJsonOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <CardsSkeleton />;
+  }
 
   // Compute KPIs
   const totalOperators = operatorsList.length;

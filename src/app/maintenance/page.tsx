@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Wrench,
@@ -24,8 +24,10 @@ import {
 import { MOCK_EQUIPMENT_STATES, MOCK_MAINTENANCE_LOGS } from '@/data/mockMaintenance';
 import { EquipmentState, MaintenanceLogEntry, MaintenanceType } from '@/types/maintenance';
 import { JsonModal } from '@/components/JsonModal';
+import { CardsSkeleton } from '@/components/skeletons/CardsSkeleton';
 
 export default function MaintenancePage() {
+  const [isLoading, setIsLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState<EquipmentState[]>(MOCK_EQUIPMENT_STATES);
   const [logsList, setLogsList] = useState<MaintenanceLogEntry[]>(MOCK_MAINTENANCE_LOGS);
 
@@ -34,6 +36,15 @@ export default function MaintenancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isJsonOpen, setIsJsonOpen] = useState(false);
   const [isNewLogModalOpen, setIsNewLogModalOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <CardsSkeleton />;
+  }
 
   // New Maintenance Form State
   const [formEquipoId, setFormEquipoId] = useState('eq-140');

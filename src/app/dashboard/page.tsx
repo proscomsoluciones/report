@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -21,15 +21,26 @@ import {
 } from 'lucide-react';
 import { useReports } from '@/context/ReportContext';
 import { JsonModal } from '@/components/JsonModal';
+import { DashboardSkeleton } from '@/components/skeletons/DashboardSkeleton';
 
 export default function DashboardPage() {
   const router = useRouter();
   const { reports, currentUser, deleteReport, resetToDefault } = useReports();
+  const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFaena, setSelectedFaena] = useState('Todas');
   const [selectedStatus, setSelectedStatus] = useState('Todos');
   const [isJsonOpen, setIsJsonOpen] = useState(false);
   const [jsonTargetId, setJsonTargetId] = useState<string | undefined>(undefined);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <DashboardSkeleton />;
+  }
 
   // Compute KPIs
   const totalReports = reports.length;

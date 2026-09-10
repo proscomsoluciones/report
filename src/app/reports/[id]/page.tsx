@@ -1,20 +1,35 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useReports } from '@/context/ReportContext';
 import { PrintableReport } from '@/components/PrintableReport';
 import { JsonModal } from '@/components/JsonModal';
 import { AlertCircle, ArrowLeft } from 'lucide-react';
+import { ReportSkeleton } from '@/components/skeletons/ReportSkeleton';
 
 export default function ReportDetailPage() {
   const params = useParams();
   const router = useRouter();
   const { getReportById } = useReports();
+  const [isLoading, setIsLoading] = useState(true);
   const [isJsonOpen, setIsJsonOpen] = useState(false);
 
   const reportId = params?.id as string;
   const report = getReportById(reportId);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-slate-950 text-slate-100 font-sans py-8 px-4 sm:px-6">
+        <ReportSkeleton />
+      </div>
+    );
+  }
 
   if (!report) {
     return (
