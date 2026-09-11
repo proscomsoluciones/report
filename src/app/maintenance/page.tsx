@@ -37,15 +37,6 @@ export default function MaintenancePage() {
   const [isJsonOpen, setIsJsonOpen] = useState(false);
   const [isNewLogModalOpen, setIsNewLogModalOpen] = useState(false);
 
-  useEffect(() => {
-    const timer = setTimeout(() => setIsLoading(false), 300);
-    return () => clearTimeout(timer);
-  }, []);
-
-  if (isLoading) {
-    return <CardsSkeleton />;
-  }
-
   // New Maintenance Form State
   const [formEquipoId, setFormEquipoId] = useState('eq-140');
   const [formTipo, setFormTipo] = useState<MaintenanceType>('Preventiva');
@@ -59,6 +50,15 @@ export default function MaintenancePage() {
   const [formDescripcion, setFormDescripcion] = useState('');
   const [formRepuestos, setFormRepuestos] = useState('');
   const [formCosto, setFormCosto] = useState('450000');
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <CardsSkeleton />;
+  }
 
   // Compute KPIs
   const totalEquipments = equipmentList.length;
