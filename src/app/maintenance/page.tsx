@@ -23,10 +23,12 @@ import {
 } from 'lucide-react';
 import { MOCK_EQUIPMENT_STATES, MOCK_MAINTENANCE_LOGS } from '@/data/mockMaintenance';
 import { EquipmentState, MaintenanceLogEntry, MaintenanceType } from '@/types/maintenance';
+import { useReports } from '@/context/ReportContext';
 import { JsonModal } from '@/components/JsonModal';
 import { CardsSkeleton } from '@/components/skeletons/CardsSkeleton';
 
 export default function MaintenancePage() {
+  const { currentUser } = useReports();
   const [isLoading, setIsLoading] = useState(true);
   const [equipmentList, setEquipmentList] = useState<EquipmentState[]>(MOCK_EQUIPMENT_STATES);
   const [logsList, setLogsList] = useState<MaintenanceLogEntry[]>(MOCK_MAINTENANCE_LOGS);
@@ -36,6 +38,46 @@ export default function MaintenancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [isJsonOpen, setIsJsonOpen] = useState(false);
   const [isNewLogModalOpen, setIsNewLogModalOpen] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setIsLoading(false), 300);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (isLoading) {
+    return <CardsSkeleton />;
+  }
+
+  // Role Guard: Operador and Cliente roles are restricted from maintenance management
+  if (currentUser?.rol === 'Operador' || currentUser?.rol === 'Cliente') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-16 h-16 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto">
+            <Wrench className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full">
+              Rol Activo: {currentUser?.rol}
+            </span>
+            <h2 className="text-xl font-black text-white pt-2">Bitácora de Taller Restringida</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              El perfil <strong>{currentUser?.rol}</strong> no tiene permisos para el módulo de mantenciones. La bitácora de taller está reservada para el rol <strong>Mecánico</strong> y <strong>Administración</strong>.
+            </p>
+          </div>
+          <div className="pt-4 border-t border-slate-800">
+            <Link
+              href="/dashboard"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center space-x-2 shadow-lg transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Volver a Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // New Maintenance Form State
   const [formEquipoId, setFormEquipoId] = useState('eq-140');

@@ -2,39 +2,65 @@
 
 import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Truck, ShieldCheck, UserCheck, ArrowRight, HardHat, FileCheck2, Code, Sparkles } from 'lucide-react';
+import { Truck, ShieldCheck, UserCheck, ArrowRight, HardHat, FileCheck2, Building2, Wrench, UserPlus, Lock, Key, Mail, Sparkles, AlertCircle, CheckCircle2 } from 'lucide-react';
 import { useReports } from '@/context/ReportContext';
-import { UserSession } from '@/types/report';
+import { UserManagementModal } from '@/components/UserManagementModal';
+import { UserAccount } from '@/types/report';
 
 export default function LoginPage() {
   const router = useRouter();
-  const { login } = useReports();
-  const [selectedRole, setSelectedRole] = useState<'Operador' | 'Supervisor' | 'Administrador'>('Operador');
-  const [nombre, setNombre] = useState('Raúl Solorza');
+  const { loginWithCredentials, login, accounts } = useReports();
+  const [selectedRoleTab, setSelectedRoleTab] = useState<'Operador' | 'Mecánico' | 'Supervisor' | 'Administrador' | 'Cliente'>('Operador');
 
-  const handleQuickLogin = (role: 'Operador' | 'Supervisor' | 'Administrador', defaultName: string, defaultCargo: string) => {
-    const userSession: UserSession = {
-      nombre: defaultName,
-      rol: role,
-      cargo: defaultCargo,
-    };
-    login(userSession);
-    router.push('/dashboard');
+  // Credentials State
+  const [identifier, setIdentifier] = useState('operador@burger.cl');
+  const [password, setPassword] = useState('1234');
+  const [errorMessage, setErrorMessage] = useState('');
+  const [isUserModalOpen, setIsUserModalOpen] = useState(false);
+
+  const handleRoleTabChange = (role: 'Operador' | 'Mecánico' | 'Supervisor' | 'Administrador' | 'Cliente') => {
+    setSelectedRoleTab(role);
+    setErrorMessage('');
+
+    // Pre-fill demo credentials matching tab
+    const demoAcc = accounts.find((a) => a.rol === role);
+    if (demoAcc) {
+      setIdentifier(demoAcc.email);
+      setPassword(demoAcc.password);
+    } else {
+      setIdentifier('');
+      setPassword('');
+    }
   };
 
-  const handleCustomLogin = (e: React.FormEvent) => {
+  const handleLoginSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const cargoMap = {
-      Operador: 'Operador de Grúa LTM 1250',
-      Supervisor: 'Supervisor de Terreno',
-      Administrador: 'Jefe de Operaciones',
-    };
-    login({
-      nombre,
-      rol: selectedRole,
-      cargo: cargoMap[selectedRole],
-    });
-    router.push('/dashboard');
+    setErrorMessage('');
+
+    if (!identifier.trim() || !password.trim()) {
+      setErrorMessage('Por favor ingrese su Correo/RUT y Contraseña o PIN.');
+      return;
+    }
+
+    const res = loginWithCredentials(identifier, password);
+    if (res.success) {
+      router.push('/dashboard');
+    } else {
+      setErrorMessage(res.message || 'Error de autenticación');
+    }
+  };
+
+  const handleQuickLoginAccount = (account: UserAccount) => {
+    setSelectedRoleTab(account.rol);
+    setIdentifier(account.email || account.rut);
+    setPassword(account.password);
+    setErrorMessage('');
+
+    // Smooth scroll to login box on mobile devices
+    const loginBox = document.getElementById('login-box-container');
+    if (loginBox) {
+      loginBox.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -59,144 +85,261 @@ export default function LoginPage() {
           </div>
         </div>
 
-        <span className="text-xs font-semibold px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-full flex items-center gap-1.5">
-          <Sparkles className="w-3.5 h-3.5" /> DEMO INTERACTIVA
-        </span>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={() => setIsUserModalOpen(true)}
+            className="px-3.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-700/80 rounded-xl text-xs font-bold flex items-center gap-1.5 shadow-md transition-all"
+          >
+            <UserPlus className="w-4 h-4 text-amber-400" />
+            <span>Crear / Gestionar Accesos</span>
+          </button>
+
+          <span className="hidden sm:flex text-xs font-semibold px-3 py-1 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-full items-center gap-1.5">
+            <Sparkles className="w-3.5 h-3.5" /> ACCESO MULTI-ROL
+          </span>
+        </div>
       </header>
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-12 gap-12 items-center z-10 w-full">
-        {/* Left Column: Information & Value Proposition */}
+        {/* Left Column: Information & Role Overview */}
         <div className="lg:col-span-7 space-y-6">
           <div className="inline-flex items-center space-x-2 text-xs font-semibold text-amber-400 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg">
             <FileCheck2 className="w-4 h-4" />
-            <span>Digitalización del Reporte Diario de Trabajo (Ficha BG_COM_F003_002)</span>
+            <span>Sistema Digital de Reportes Diarios de Trabajo (Ficha BG_COM_F003_002)</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl font-black tracking-tight leading-tight text-white">
-            Gestión Inteligente de <span className="text-amber-500 underline decoration-amber-500/50">Grúas y Turnos</span> en Terreno
+            Control Operativo de <span className="text-amber-500 underline decoration-amber-500/50">Grúas y Turnos</span> por Rol
           </h1>
 
           <p className="text-slate-400 text-base leading-relaxed max-w-2xl">
-            Plataforma digital para el registro de horómetros, control de actividades de maniobras, firma de operarios/supervisores y generación automática de vouchers para clientes como SPENCE, ESCONDIDA y COLLAHUASI.
+            Acceso seguro segmentado para Operadores, Mecánicos, Supervisores de Faena, Administradores y Clientes Mineros.
           </p>
 
-          {/* Quick Access Demo Cards */}
-          <div className="pt-4 space-y-3">
-            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Acceso Rápido de Demostración (Seleccione un Perfil):
-            </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Preset Login Cards per Role */}
+          <div className="pt-2 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+                Ingreso Rápido por Perfil / Rol Activo:
+              </p>
               <button
-                onClick={() => handleQuickLogin('Operador', 'Raúl Solorza', 'Operador Grúa LTM 1250')}
-                className="p-4 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-amber-500/50 rounded-xl text-left transition-all group"
+                onClick={() => setIsUserModalOpen(true)}
+                className="text-xs text-amber-400 hover:underline font-bold flex items-center gap-1"
               >
-                <div className="p-2 bg-amber-500/10 text-amber-400 rounded-lg w-fit mb-2 group-hover:scale-110 transition-transform">
-                  <HardHat className="w-5 h-5" />
-                </div>
-                <p className="text-sm font-bold text-white">Raúl Solorza</p>
-                <p className="text-xs text-amber-400 font-medium">Operador de Grúa</p>
-                <p className="text-[10px] text-slate-400 mt-1">Registra vales y horómetros</p>
+                <UserPlus className="w-3.5 h-3.5" /> + Registrar Nuevo Acceso
               </button>
+            </div>
 
-              <button
-                onClick={() => handleQuickLogin('Supervisor', 'Carlos Gutiérrez', 'Supervisor Faena SPENCE')}
-                className="p-4 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-emerald-500/50 rounded-xl text-left transition-all group"
-              >
-                <div className="p-2 bg-emerald-500/10 text-emerald-400 rounded-lg w-fit mb-2 group-hover:scale-110 transition-transform">
-                  <UserCheck className="w-5 h-5" />
-                </div>
-                <p className="text-sm font-bold text-white">Carlos Gutiérrez</p>
-                <p className="text-xs text-emerald-400 font-medium">Supervisor Faena</p>
-                <p className="text-[10px] text-slate-400 mt-1">Aprueba y firma reportes</p>
-              </button>
-
-              <button
-                onClick={() => handleQuickLogin('Administrador', 'Jefe de Operaciones', 'Administración Burger')}
-                className="p-4 bg-slate-900/80 hover:bg-slate-800 border border-slate-800 hover:border-blue-500/50 rounded-xl text-left transition-all group"
-              >
-                <div className="p-2 bg-blue-500/10 text-blue-400 rounded-lg w-fit mb-2 group-hover:scale-110 transition-transform">
-                  <ShieldCheck className="w-5 h-5" />
-                </div>
-                <p className="text-sm font-bold text-white">Admin Operaciones</p>
-                <p className="text-xs text-blue-400 font-medium">Control Total</p>
-                <p className="text-[10px] text-slate-400 mt-1">Exporta JSON y métricas</p>
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-2.5">
+              {accounts.slice(0, 5).map((acc) => (
+                <button
+                  key={acc.id}
+                  onClick={() => handleQuickLoginAccount(acc)}
+                  className={`p-3 bg-slate-900/90 border rounded-xl text-left transition-all group hover:scale-[1.02] ${
+                    acc.rol === 'Operador'
+                      ? 'border-slate-800 hover:border-amber-500/60'
+                      : acc.rol === 'Mecánico'
+                      ? 'border-slate-800 hover:border-cyan-500/60'
+                      : acc.rol === 'Supervisor'
+                      ? 'border-slate-800 hover:border-emerald-500/60'
+                      : acc.rol === 'Administrador'
+                      ? 'border-slate-800 hover:border-blue-500/60'
+                      : 'border-slate-800 hover:border-purple-500/60'
+                  }`}
+                >
+                  <div className="flex items-center justify-between mb-2">
+                    <div
+                      className={`p-1.5 rounded-lg ${
+                        acc.rol === 'Operador'
+                          ? 'bg-amber-500/10 text-amber-400'
+                          : acc.rol === 'Mecánico'
+                          ? 'bg-cyan-500/10 text-cyan-400'
+                          : acc.rol === 'Supervisor'
+                          ? 'bg-emerald-500/10 text-emerald-400'
+                          : acc.rol === 'Administrador'
+                          ? 'bg-blue-500/10 text-blue-400'
+                          : 'bg-purple-500/10 text-purple-400'
+                      }`}
+                    >
+                      {acc.rol === 'Operador' && <HardHat className="w-4 h-4" />}
+                      {acc.rol === 'Mecánico' && <Wrench className="w-4 h-4" />}
+                      {acc.rol === 'Supervisor' && <UserCheck className="w-4 h-4" />}
+                      {acc.rol === 'Administrador' && <ShieldCheck className="w-4 h-4" />}
+                      {acc.rol === 'Cliente' && <Building2 className="w-4 h-4" />}
+                    </div>
+                    <span className="text-[10px] font-mono text-slate-400">PIN: {acc.password}</span>
+                  </div>
+                  <p className="text-xs font-bold text-white truncate">{acc.nombre}</p>
+                  <p
+                    className={`text-[10px] font-semibold ${
+                      acc.rol === 'Operador'
+                        ? 'text-amber-400'
+                        : acc.rol === 'Mecánico'
+                        ? 'text-cyan-400'
+                        : acc.rol === 'Supervisor'
+                        ? 'text-emerald-400'
+                        : acc.rol === 'Administrador'
+                        ? 'text-blue-400'
+                        : 'text-purple-400'
+                    }`}
+                  >
+                    Rol: {acc.rol}
+                  </p>
+                </button>
+              ))}
             </div>
           </div>
         </div>
 
-        {/* Right Column: Interactive Login Box */}
-        <div className="lg:col-span-5">
-          <div className="bg-slate-900/90 border border-slate-800 rounded-2xl p-6 sm:p-8 shadow-2xl backdrop-blur-md">
-            <div className="mb-6">
-              <h3 className="text-xl font-extrabold text-white">Iniciar Sesión de Demostración</h3>
+        {/* Right Column: Multi-Role Credentials Login Box */}
+        <div className="lg:col-span-5" id="login-box-container">
+          <div className="bg-slate-900/95 border border-slate-800 rounded-2xl p-6 sm:p-7 shadow-2xl backdrop-blur-md transition-all duration-300">
+            <div className="mb-5">
+              <h3 className="text-xl font-extrabold text-white flex items-center gap-2">
+                <Lock className="w-5 h-5 text-amber-500" />
+                Acceso al Sistema por Rol
+              </h3>
               <p className="text-xs text-slate-400 mt-1">
-                Ingrese credenciales o seleccione el perfil operativo
+                Ingrese credenciales o seleccione un perfil de acceso rápido
               </p>
             </div>
 
-            <form onSubmit={handleCustomLogin} className="space-y-4">
+            {/* Role Selection Tabs */}
+            <div className="grid grid-cols-5 gap-1 bg-slate-950 p-1 rounded-xl mb-5 border border-slate-800">
+              {(['Operador', 'Mecánico', 'Supervisor', 'Administrador', 'Cliente'] as const).map((r) => (
+                <button
+                  key={r}
+                  type="button"
+                  onClick={() => handleRoleTabChange(r)}
+                  className={`py-2 px-1 text-[10px] font-bold rounded-lg transition-all flex flex-col items-center justify-center gap-0.5 ${
+                    selectedRoleTab === r
+                      ? 'bg-amber-500 text-slate-950 shadow-md font-black'
+                      : 'text-slate-400 hover:text-white'
+                  }`}
+                >
+                  <span className="truncate">{r}</span>
+                </button>
+              ))}
+            </div>
+
+            {/* Role Scope Description Banner */}
+            <div className="mb-4 p-3 bg-slate-950 border border-slate-800 rounded-xl text-xs space-y-1">
+              <div className="flex items-center justify-between">
+                <span className="font-bold text-amber-400 text-xs">Alcance Perfil {selectedRoleTab}:</span>
+                <span className="text-[10px] text-slate-500 font-mono">ID: {selectedRoleTab.toLowerCase()}</span>
+              </div>
+              {selectedRoleTab === 'Operador' && (
+                <p className="text-[11px] text-slate-300">
+                  👷 <strong>Operador:</strong> Registra reportes diarios de trabajo en terreno y consulta el historial de sus reportes ingresados.
+                </p>
+              )}
+              {selectedRoleTab === 'Mecánico' && (
+                <p className="text-[11px] text-slate-300">
+                  🔧 <strong>Mecánico:</strong> Registra mantenciones preventivas/correctivas, pautas de taller y seguimiento de horómetros.
+                </p>
+              )}
+              {selectedRoleTab === 'Supervisor' && (
+                <p className="text-[11px] text-slate-300">
+                  👷‍♂️ <strong>Supervisor:</strong> Revisa, aprueba, firma vales en faena y audita la vigencia de licencias de operadores.
+                </p>
+              )}
+              {selectedRoleTab === 'Administrador' && (
+                <p className="text-[11px] text-slate-300">
+                  🛡️ <strong>Administrador (Acceso Total):</strong> Ve todos los módulos, métricas, mantenciones, operadores, JSON y creación de accesos.
+                </p>
+              )}
+              {selectedRoleTab === 'Cliente' && (
+                <p className="text-[11px] text-slate-300">
+                  🏢 <strong>Cliente / Minera:</strong> Consulta vouchers de trabajo finalizados y valida certificados de faena.
+                </p>
+              )}
+            </div>
+
+            {/* Error Message Alert */}
+            {errorMessage && (
+              <div className="mb-4 p-3 bg-rose-500/10 border border-rose-500/30 rounded-xl text-xs text-rose-300 flex items-center gap-2">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{errorMessage}</span>
+              </div>
+            )}
+
+            {/* Login Form */}
+            <form onSubmit={handleLoginSubmit} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Nombre del Usuario / Operador:
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Correo Electrónico o RUT:
                 </label>
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  className="w-full px-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-sm text-white focus:outline-none focus:border-amber-500 transition-colors"
-                  placeholder="Ej: Raúl Solorza"
-                  required
-                />
+                <div className="relative">
+                  <Mail className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="text"
+                    value={identifier}
+                    onChange={(e) => setIdentifier(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                    placeholder="ejemplo@burger.cl o 16.842.109-5"
+                    required
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-2">
-                  Rol en Plataforma:
+                <label className="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">
+                  Contraseña o PIN de Rol:
                 </label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(['Operador', 'Supervisor', 'Administrador'] as const).map((role) => (
-                    <button
-                      key={role}
-                      type="button"
-                      onClick={() => setSelectedRole(role)}
-                      className={`py-2 px-3 rounded-lg text-xs font-bold border transition-all ${
-                        selectedRole === role
-                          ? 'bg-amber-500 text-slate-950 border-amber-500 shadow-md'
-                          : 'bg-slate-950 text-slate-400 border-slate-800 hover:text-white'
-                      }`}
-                    >
-                      {role}
-                    </button>
-                  ))}
+                <div className="relative">
+                  <Key className="w-4 h-4 text-slate-500 absolute left-3.5 top-3" />
+                  <input
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="w-full pl-10 pr-4 py-2.5 bg-slate-950 border border-slate-700 rounded-xl text-xs text-white focus:outline-none focus:border-amber-500 font-mono"
+                    placeholder="****"
+                    required
+                  />
                 </div>
               </div>
 
               <div className="pt-2">
                 <button
                   type="submit"
-                  className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold text-sm rounded-xl flex items-center justify-center space-x-2 shadow-lg transition-all"
+                  className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center space-x-2 shadow-lg transition-all"
                 >
-                  <span>Ingresar al Sistema Demo</span>
+                  <span>Ingresar como {selectedRoleTab}</span>
                   <ArrowRight className="w-4 h-4" />
                 </button>
               </div>
             </form>
 
-            <div className="mt-6 pt-4 border-t border-slate-800 text-center">
-              <p className="text-[11px] text-slate-500">
-                Sistema configurado con datos de demostración pre-cargados (Ficha física N° 002532 SPENCE).
+            <div className="mt-5 pt-4 border-t border-slate-800 text-center space-y-2">
+              <p className="text-[11px] text-slate-400">
+                ¿Necesita registrar una nueva cuenta de acceso para un rol?
               </p>
+              <button
+                type="button"
+                onClick={() => setIsUserModalOpen(true)}
+                className="w-full py-2 bg-slate-950 hover:bg-slate-800 border border-slate-700 text-amber-400 text-xs font-bold rounded-xl flex items-center justify-center gap-1.5 transition-all"
+              >
+                <UserPlus className="w-3.5 h-3.5 text-amber-400" />
+                <span>+ Crear Acceso con Login por Rol</span>
+              </button>
             </div>
           </div>
         </div>
       </main>
 
+      {/* User Management Modal */}
+      <UserManagementModal
+        isOpen={isUserModalOpen}
+        onClose={() => setIsUserModalOpen(false)}
+        onSelectAccountToLogin={handleQuickLoginAccount}
+      />
+
       {/* Footer */}
       <footer className="p-6 max-w-7xl mx-auto w-full text-center text-xs text-slate-500 border-t border-slate-900">
-        <p>BURGER GRUAS Y TRANSPORTES ESPECIALES Burger Limitada • Sistema Diseñado por SCOM.cl</p>
+        <p>BURGER GRUAS Y TRANSPORTES ESPECIALES Burger Limitada • Sistema Diseñado por proscom.cl</p>
       </footer>
     </div>
   );
 }
+

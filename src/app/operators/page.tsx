@@ -22,10 +22,12 @@ import {
 } from 'lucide-react';
 import { MOCK_OPERATORS } from '@/data/mockOperators';
 import { OperatorCertification } from '@/types/operator';
+import { useReports } from '@/context/ReportContext';
 import { JsonModal } from '@/components/JsonModal';
 import { CardsSkeleton } from '@/components/skeletons/CardsSkeleton';
 
 export default function OperatorsPage() {
+  const { currentUser } = useReports();
   const [isLoading, setIsLoading] = useState(true);
   const [operatorsList, setOperatorsList] = useState<OperatorCertification[]>(MOCK_OPERATORS);
   const [searchQuery, setSearchQuery] = useState('');
@@ -39,6 +41,37 @@ export default function OperatorsPage() {
 
   if (isLoading) {
     return <CardsSkeleton />;
+  }
+
+  // Role Guard: Only Supervisor and Administrador can access operator accreditation management
+  if (currentUser?.rol === 'Operador' || currentUser?.rol === 'Mecánico' || currentUser?.rol === 'Cliente') {
+    return (
+      <div className="min-h-screen bg-slate-950 text-white flex items-center justify-center p-4">
+        <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 text-center space-y-4 shadow-2xl">
+          <div className="w-16 h-16 bg-amber-500/10 text-amber-400 border border-amber-500/30 rounded-2xl flex items-center justify-center mx-auto">
+            <Users className="w-8 h-8" />
+          </div>
+          <div className="space-y-2">
+            <span className="text-[10px] font-bold text-amber-400 uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 px-3 py-1 rounded-full">
+              Rol Activo: {currentUser?.rol}
+            </span>
+            <h2 className="text-xl font-black text-white pt-2">Acreditaciones Restringidas</h2>
+            <p className="text-xs text-slate-400 leading-relaxed">
+              El perfil <strong>{currentUser?.rol}</strong> no tiene permisos para auditar acreditaciones de personal. Este módulo está reservado para el rol <strong>Supervisor</strong> y <strong>Administración</strong>.
+            </p>
+          </div>
+          <div className="pt-4 border-t border-slate-800">
+            <Link
+              href="/dashboard"
+              className="w-full py-3 bg-amber-500 hover:bg-amber-400 text-slate-950 font-black text-xs uppercase tracking-wider rounded-xl flex items-center justify-center space-x-2 shadow-lg transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Volver a Dashboard</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
   }
 
   // Compute KPIs

@@ -1,14 +1,76 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { ReportItem, UserSession } from '@/types/report';
+import { ReportItem, UserSession, UserAccount } from '@/types/report';
 import { INITIAL_MOCK_REPORTS } from '@/data/mockReports';
+
+export const INITIAL_USER_ACCOUNTS: UserAccount[] = [
+  {
+    id: 'usr_op_1',
+    rut: '16.842.109-5',
+    nombre: 'Raúl Solorza',
+    email: 'operador@burger.cl',
+    password: '1234',
+    rol: 'Operador',
+    cargo: 'Operador de Grúa LTM 1250',
+    faena: 'SPENCE',
+    createdAt: '2026-01-10',
+  },
+  {
+    id: 'usr_sup_1',
+    rut: '14.230.985-2',
+    nombre: 'Carlos Gutiérrez',
+    email: 'supervisor@burger.cl',
+    password: '2345',
+    rol: 'Supervisor',
+    cargo: 'Supervisor Faena SPENCE',
+    faena: 'SPENCE',
+    createdAt: '2026-01-05',
+  },
+  {
+    id: 'usr_adm_1',
+    rut: '12.450.312-8',
+    nombre: 'Administración Burger',
+    email: 'admin@burger.cl',
+    password: '9999',
+    rol: 'Administrador',
+    cargo: 'Jefe de Operaciones',
+    faena: 'OFICINA CENTRAL',
+    createdAt: '2026-01-01',
+  },
+  {
+    id: 'usr_cli_1',
+    rut: '77.892.400-K',
+    nombre: 'Inspectora SPENCE (BHP)',
+    email: 'cliente@spence.cl',
+    password: '5555',
+    rol: 'Cliente',
+    cargo: 'Administradora de Contrato SPENCE',
+    faena: 'MINERA SPENCE',
+    createdAt: '2026-01-12',
+  },
+  {
+    id: 'usr_mec_1',
+    rut: '15.930.122-4',
+    nombre: 'Pedro Aguilera',
+    email: 'mecanico@burger.cl',
+    password: '3456',
+    rol: 'Mecánico',
+    cargo: 'Jefe de Taller & Mantenciones',
+    faena: 'TALLER CENTRAL',
+    createdAt: '2026-01-08',
+  },
+];
 
 interface ReportContextType {
   reports: ReportItem[];
   currentUser: UserSession | null;
+  accounts: UserAccount[];
   login: (user: UserSession) => void;
   logout: () => void;
+  loginWithCredentials: (identifier: string, password: string) => { success: boolean; message?: string };
+  createAccount: (data: Omit<UserAccount, 'id' | 'createdAt'>) => { success: boolean; account?: UserAccount; message?: string };
+  deleteAccount: (id: string) => void;
   addReport: (report: ReportItem) => void;
   updateReport: (id: string, updatedData: Partial<ReportItem>) => void;
   deleteReport: (id: string) => void;
@@ -18,11 +80,15 @@ interface ReportContextType {
 
 const STORAGE_KEY_REPORTS = 'burger_reports_demo_v1';
 const STORAGE_KEY_USER = 'burger_user_session_v1';
+const STORAGE_KEY_ACCOUNTS = 'burger_user_accounts_v1';
 
 const DEFAULT_USER: UserSession = {
+  id: 'usr_op_1',
   nombre: 'Raúl Solorza',
   rol: 'Operador',
   cargo: 'Operador de Grúa LTM 1250',
+  email: 'operador@burger.cl',
+  rut: '16.842.109-5',
 };
 
 const ReportContext = createContext<ReportContextType | undefined>(undefined);
@@ -30,6 +96,7 @@ const ReportContext = createContext<ReportContextType | undefined>(undefined);
 export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [reports, setReports] = useState<ReportItem[]>([]);
   const [currentUser, setCurrentUser] = useState<UserSession | null>(null);
+  const [accounts, setAccounts] = useState<UserAccount[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
 
   useEffect(() => {
@@ -42,6 +109,20 @@ export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(INITIAL_MOCK_REPORTS));
       }
 
+      const storedAccounts = localStorage.getItem(STORAGE_KEY_ACCOUNTS);
+      if (storedAccounts) {
+        const parsed: UserAccount[] = JSON.parse(storedAccounts);
+        const missingDefaults = INITIAL_USER_ACCOUNTS.filter(
+          (def) => !parsed.some((p) => p.id === def.id || p.email.toLowerCase() === def.email.toLowerCase())
+        );
+        const merged = [...parsed, ...missingDefaults];
+        setAccounts(merged);
+        localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(merged));
+      } else {
+        setAccounts(INITIAL_USER_ACCOUNTS);
+        localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(INITIAL_USER_ACCOUNTS));
+      }
+
       const storedUser = localStorage.getItem(STORAGE_KEY_USER);
       if (storedUser) {
         setCurrentUser(JSON.parse(storedUser));
@@ -52,6 +133,7 @@ export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     } catch (e) {
       console.error('Error cargando localStorage', e);
       setReports(INITIAL_MOCK_REPORTS);
+      setAccounts(INITIAL_USER_ACCOUNTS);
       setCurrentUser(DEFAULT_USER);
     } finally {
       setIsLoaded(true);
@@ -64,6 +146,15 @@ export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       localStorage.setItem(STORAGE_KEY_REPORTS, JSON.stringify(newReports));
     } catch (e) {
       console.error('Error guardando en localStorage', e);
+    }
+  };
+
+  const saveAccounts = (newAccounts: UserAccount[]) => {
+    setAccounts(newAccounts);
+    try {
+      localStorage.setItem(STORAGE_KEY_ACCOUNTS, JSON.stringify(newAccounts));
+    } catch (e) {
+      console.error('Error guardando cuentas en localStorage', e);
     }
   };
 
@@ -85,6 +176,66 @@ export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   };
 
+  const loginWithCredentials = (identifier: string, password: string) => {
+    const cleanId = identifier.trim().toLowerCase();
+    const account = accounts.find(
+      (a) =>
+        (a.email.toLowerCase() === cleanId || a.rut.toLowerCase() === cleanId) &&
+        a.password === password
+    );
+
+    if (!account) {
+      return {
+        success: false,
+        message: 'Credenciales inválidas. Por favor verifique el correo/RUT y contraseña o PIN.',
+      };
+    }
+
+    const session: UserSession = {
+      id: account.id,
+      nombre: account.nombre,
+      rol: account.rol,
+      cargo: account.cargo,
+      email: account.email,
+      rut: account.rut,
+    };
+
+    login(session);
+    return { success: true };
+  };
+
+  const createAccount = (data: Omit<UserAccount, 'id' | 'createdAt'>) => {
+    const cleanEmail = data.email.trim().toLowerCase();
+    const cleanRut = data.rut.trim().toLowerCase();
+
+    const exists = accounts.some(
+      (a) => a.email.toLowerCase() === cleanEmail || a.rut.toLowerCase() === cleanRut
+    );
+
+    if (exists) {
+      return {
+        success: false,
+        message: 'Ya existe una cuenta registrada con ese Correo o RUT.',
+      };
+    }
+
+    const newAcc: UserAccount = {
+      ...data,
+      id: `usr_${Date.now()}`,
+      createdAt: new Date().toISOString().split('T')[0],
+    };
+
+    const updated = [newAcc, ...accounts];
+    saveAccounts(updated);
+
+    return { success: true, account: newAcc };
+  };
+
+  const deleteAccount = (id: string) => {
+    const updated = accounts.filter((a) => a.id !== id);
+    saveAccounts(updated);
+  };
+
   const addReport = (report: ReportItem) => {
     const updated = [report, ...reports];
     saveReports(updated);
@@ -102,6 +253,7 @@ export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
   const resetToDefault = () => {
     saveReports(INITIAL_MOCK_REPORTS);
+    saveAccounts(INITIAL_USER_ACCOUNTS);
   };
 
   const getReportById = (id: string) => {
@@ -124,8 +276,12 @@ export const ReportProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       value={{
         reports,
         currentUser,
+        accounts,
         login,
         logout,
+        loginWithCredentials,
+        createAccount,
+        deleteAccount,
         addReport,
         updateReport,
         deleteReport,
@@ -145,3 +301,4 @@ export const useReports = () => {
   }
   return context;
 };
+

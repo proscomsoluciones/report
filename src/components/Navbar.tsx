@@ -3,27 +3,27 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { Truck, PlusCircle, LayoutDashboard, Code, LogOut, UserCheck, FileText, ChevronDown, Menu, X, Users, Wrench } from 'lucide-react';
+import { Truck, PlusCircle, LayoutDashboard, Code, LogOut, UserCheck, FileText, ChevronDown, Menu, X, Users, Wrench, UserPlus, ShieldCheck, HardHat, Building2 } from 'lucide-react';
 import { useReports } from '@/context/ReportContext';
 import { JsonModal } from './JsonModal';
-import { UserSession } from '@/types/report';
+import { UserManagementModal } from './UserManagementModal';
 
 export const Navbar: React.FC = () => {
   const pathname = usePathname();
   const router = useRouter();
-  const { currentUser, login, logout } = useReports();
+  const { currentUser, accounts, login, logout } = useReports();
   const [isJsonOpen, setIsJsonOpen] = useState(false);
+  const [isUserManagementOpen, setIsUserManagementOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
-  // Quick switch users for client demonstration
-  const DEMO_USERS: UserSession[] = [
-    { nombre: 'Raúl Solorza', rol: 'Operador', cargo: 'Operador de Grúa LTM 1250' },
-    { nombre: 'Carlos Gutiérrez', rol: 'Supervisor', cargo: 'Supervisor Faena SPENCE' },
-    { nombre: 'Administración Burger', rol: 'Administrador', cargo: 'Jefe de Operaciones' },
-  ];
-
   if (pathname === '/') return null; // Don't render navbar on login page
+
+  const isOperador = currentUser?.rol === 'Operador';
+  const isMecanico = currentUser?.rol === 'Mecánico';
+  const isSupervisor = currentUser?.rol === 'Supervisor';
+  const isAdmin = currentUser?.rol === 'Administrador';
+  const isCliente = currentUser?.rol === 'Cliente';
 
   return (
     <>
@@ -44,7 +44,7 @@ export const Navbar: React.FC = () => {
             </div>
           </Link>
 
-          {/* Desktop Navigation Links (Single Line, No Wrap) */}
+          {/* Desktop Navigation Links (Role-Aware) */}
           <nav className="hidden md:flex items-center space-x-1 lg:space-x-1.5 overflow-x-auto no-scrollbar py-1">
             <Link
               href="/dashboard"
@@ -54,41 +54,51 @@ export const Navbar: React.FC = () => {
                   : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
               }`}
             >
-              <LayoutDashboard className="w-3.5 h-3.5 text-amber-500" /> Dashboard
+              <LayoutDashboard className="w-3.5 h-3.5 text-amber-500" />
+              <span>{isOperador ? 'Mis Reportes' : isCliente ? 'Vouchers' : 'Dashboard'}</span>
             </Link>
 
-            <Link
-              href="/reports/new"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                pathname === '/reports/new'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-            >
-              <PlusCircle className="w-3.5 h-3.5 text-amber-500" /> Nuevo Reporte
-            </Link>
+            {/* Nuevo Reporte: Visible to Operador, Mecánico, Supervisor, Admin */}
+            {!isCliente && (
+              <Link
+                href="/reports/new"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  pathname === '/reports/new'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <PlusCircle className="w-3.5 h-3.5 text-amber-500" /> Nuevo Reporte
+              </Link>
+            )}
 
-            <Link
-              href="/maintenance"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                pathname === '/maintenance'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-            >
-              <Wrench className="w-3.5 h-3.5 text-amber-500" /> Mantenciones
-            </Link>
+            {/* Mantenciones & Taller: Visible to Mecánico and Admin */}
+            {(isAdmin || isMecanico) && (
+              <Link
+                href="/maintenance"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  pathname === '/maintenance'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Wrench className="w-3.5 h-3.5 text-amber-500" /> Mantenciones
+              </Link>
+            )}
 
-            <Link
-              href="/operators"
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                pathname === '/operators'
-                  ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold'
-                  : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
-              }`}
-            >
-              <Users className="w-3.5 h-3.5 text-emerald-400" /> Operadores
-            </Link>
+            {/* Operadores: Visible to Supervisor and Admin */}
+            {(isAdmin || isSupervisor) && (
+              <Link
+                href="/operators"
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  pathname === '/operators'
+                    ? 'bg-amber-500/10 text-amber-400 border border-amber-500/30 font-bold'
+                    : 'text-slate-300 hover:bg-slate-800/80 hover:text-white'
+                }`}
+              >
+                <Users className="w-3.5 h-3.5 text-emerald-400" /> Operadores
+              </Link>
+            )}
 
             <Link
               href="/reports/002532"
@@ -104,14 +114,26 @@ export const Navbar: React.FC = () => {
 
           {/* Right Tools & User Profile */}
           <div className="flex items-center space-x-2 shrink-0">
+            {/* Create Access Button (Only Admin & Supervisor) */}
+            {(isAdmin || isSupervisor) && (
+              <button
+                onClick={() => setIsUserManagementOpen(true)}
+                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-700/80 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+                title="Crear o administrar accesos con login por rol"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span className="hidden lg:inline">Crear Acceso</span>
+              </button>
+            )}
+
             {/* JSON Code Button */}
             <button
               onClick={() => setIsJsonOpen(true)}
-              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-amber-400 border border-slate-700/80 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 bg-slate-900 hover:bg-slate-800 text-slate-300 hover:text-amber-400 border border-slate-700/80 rounded-lg text-xs font-semibold whitespace-nowrap transition-all"
               title="Inspeccionar datos en JSON"
             >
               <Code className="w-3.5 h-3.5" />
-              <span className="hidden lg:inline">Ver JSON</span>
+              <span className="hidden lg:inline">JSON</span>
             </button>
 
             {/* User Dropdown / Switch */}
@@ -131,42 +153,79 @@ export const Navbar: React.FC = () => {
               </button>
 
               {isUserMenuOpen && (
-                <div className="absolute right-0 mt-2 w-64 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                <div className="absolute right-0 mt-2 w-72 bg-slate-900 border border-slate-700 rounded-xl shadow-2xl py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
                   <div className="px-3 py-2 border-b border-slate-800 mb-1">
-                    <p className="text-xs text-slate-400">Rol Activo para Demo:</p>
-                    <p className="text-xs font-bold text-white">{currentUser?.cargo}</p>
+                    <p className="text-[10px] text-slate-400 uppercase tracking-wider">Sesión Actual:</p>
+                    <p className="text-xs font-bold text-white">{currentUser?.nombre}</p>
+                    <span className="text-[10px] text-amber-400 font-semibold">{currentUser?.cargo}</span>
                   </div>
 
-                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                    Cambiar usuario de prueba:
+                  <div className="px-3 py-1 text-[11px] font-semibold text-slate-400 uppercase tracking-wider flex items-center justify-between">
+                    <span>Cambiar Usuario / Rol:</span>
+                    {(isAdmin || isSupervisor) && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setIsUserManagementOpen(true);
+                        }}
+                        className="text-amber-400 hover:underline text-[10px] font-bold"
+                      >
+                        + Crear Acceso
+                      </button>
+                    )}
                   </div>
 
-                  {DEMO_USERS.map((user) => (
-                    <button
-                      key={user.nombre}
-                      onClick={() => {
-                        login(user);
-                        setIsUserMenuOpen(false);
-                      }}
-                      className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between hover:bg-slate-800 transition-colors ${
-                        currentUser?.nombre === user.nombre ? 'text-amber-400 font-bold bg-slate-800/50' : 'text-slate-300'
-                      }`}
-                    >
-                      <div>
-                        <p>{user.nombre}</p>
-                        <p className="text-[10px] text-slate-400 font-normal">{user.rol}</p>
-                      </div>
-                      {currentUser?.nombre === user.nombre && <UserCheck className="w-4 h-4 text-amber-400" />}
-                    </button>
-                  ))}
+                  <div className="max-h-56 overflow-y-auto space-y-0.5 px-1">
+                    {accounts.map((acc) => (
+                      <button
+                        key={acc.id}
+                        onClick={() => {
+                          login({
+                            id: acc.id,
+                            nombre: acc.nombre,
+                            rol: acc.rol,
+                            cargo: acc.cargo,
+                            email: acc.email,
+                            rut: acc.rut,
+                          });
+                          setIsUserMenuOpen(false);
+                        }}
+                        className={`w-full text-left px-3 py-2 text-xs flex items-center justify-between rounded-lg transition-colors ${
+                          currentUser?.nombre === acc.nombre
+                            ? 'text-amber-400 font-bold bg-slate-800/80'
+                            : 'text-slate-300 hover:bg-slate-800'
+                        }`}
+                      >
+                        <div className="truncate pr-2">
+                          <p className="truncate">{acc.nombre}</p>
+                          <p className="text-[10px] text-slate-400 font-normal truncate">
+                            {acc.rol} • {acc.faena}
+                          </p>
+                        </div>
+                        {currentUser?.nombre === acc.nombre && <UserCheck className="w-4 h-4 text-amber-400 shrink-0" />}
+                      </button>
+                    ))}
+                  </div>
 
-                  <div className="border-t border-slate-800 mt-2 pt-1">
+                  <div className="border-t border-slate-800 mt-2 pt-1 px-1">
+                    {(isAdmin || isSupervisor) && (
+                      <button
+                        onClick={() => {
+                          setIsUserMenuOpen(false);
+                          setIsUserManagementOpen(true);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-amber-400 hover:bg-amber-950/30 flex items-center gap-2 rounded-lg transition-colors font-bold"
+                      >
+                        <UserPlus className="w-3.5 h-3.5" /> Administrar Accesos
+                      </button>
+                    )}
+
                     <button
                       onClick={() => {
                         logout();
                         router.push('/');
                       }}
-                      className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-950/30 flex items-center gap-2 transition-colors"
+                      className="w-full text-left px-3 py-2 text-xs text-rose-400 hover:bg-rose-950/30 flex items-center gap-2 rounded-lg transition-colors"
                     >
                       <LogOut className="w-3.5 h-3.5" /> Cerrar Sesión
                     </button>
@@ -195,38 +254,57 @@ export const Navbar: React.FC = () => {
                 pathname === '/dashboard' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
               }`}
             >
-              <LayoutDashboard className="w-4 h-4 text-amber-400" /> Dashboard Operativo
+              <LayoutDashboard className="w-4 h-4 text-amber-400" />
+              <span>{isOperador ? 'Mis Reportes Registrados' : 'Dashboard Operativo'}</span>
             </Link>
 
-            <Link
-              href="/reports/new"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                pathname === '/reports/new' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <PlusCircle className="w-4 h-4 text-amber-400" /> Nuevo Reporte Diario
-            </Link>
+            {!isCliente && (
+              <Link
+                href="/reports/new"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  pathname === '/reports/new' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <PlusCircle className="w-4 h-4 text-amber-400" /> Nuevo Reporte Diario
+              </Link>
+            )}
 
-            <Link
-              href="/maintenance"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                pathname === '/maintenance' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <Wrench className="w-4 h-4 text-amber-400" /> Mantenciones & Bitácora
-            </Link>
+            {(isAdmin || isMecanico) && (
+              <Link
+                href="/maintenance"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  pathname === '/maintenance' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Wrench className="w-4 h-4 text-amber-400" /> Mantenciones & Bitácora
+              </Link>
+            )}
 
-            <Link
-              href="/operators"
-              onClick={() => setIsMobileMenuOpen(false)}
-              className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
-                pathname === '/operators' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
-              }`}
-            >
-              <Users className="w-4 h-4 text-emerald-400" /> Operadores & Licencias
-            </Link>
+            {(isSupervisor || isAdmin) && (
+              <Link
+                href="/operators"
+                onClick={() => setIsMobileMenuOpen(false)}
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold transition-all ${
+                  pathname === '/operators' ? 'bg-amber-500/10 text-amber-400 font-bold' : 'text-slate-300 hover:bg-slate-800'
+                }`}
+              >
+                <Users className="w-4 h-4 text-emerald-400" /> Operadores & Licencias
+              </Link>
+            )}
+
+            {(isAdmin || isSupervisor) && (
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  setIsUserManagementOpen(true);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-xs font-bold text-amber-400 hover:bg-slate-800 transition-all text-left"
+              >
+                <UserPlus className="w-4 h-4 text-amber-400" /> Crear Acceso con Login por Rol
+              </button>
+            )}
 
             <Link
               href="/reports/002532"
@@ -253,47 +331,62 @@ export const Navbar: React.FC = () => {
           <span>Dashboard</span>
         </Link>
 
-        <Link
-          href="/reports/new"
-          className={`flex flex-col items-center gap-1 ${
-            pathname === '/reports/new' ? 'text-amber-400 font-bold' : 'hover:text-slate-200'
-          }`}
-        >
-          <PlusCircle className="w-5 h-5 text-amber-400" />
-          <span>Nuevo Reporte</span>
-        </Link>
+        {!isCliente && (
+          <Link
+            href="/reports/new"
+            className={`flex flex-col items-center gap-1 ${
+              pathname === '/reports/new' ? 'text-amber-400 font-bold' : 'hover:text-slate-200'
+            }`}
+          >
+            <PlusCircle className="w-5 h-5 text-amber-400" />
+            <span>Nuevo Reporte</span>
+          </Link>
+        )}
 
-        <Link
-          href="/maintenance"
-          className={`flex flex-col items-center gap-1 ${
-            pathname === '/maintenance' ? 'text-amber-400 font-bold' : 'hover:text-slate-200'
-          }`}
-        >
-          <Wrench className="w-5 h-5 text-amber-400" />
-          <span>Taller</span>
-        </Link>
+        {(isAdmin || isMecanico) && (
+          <Link
+            href="/maintenance"
+            className={`flex flex-col items-center gap-1 ${
+              pathname === '/maintenance' ? 'text-amber-400 font-bold' : 'hover:text-slate-200'
+            }`}
+          >
+            <Wrench className="w-5 h-5 text-amber-400" />
+            <span>Taller</span>
+          </Link>
+        )}
 
-        <Link
-          href="/operators"
-          className={`flex flex-col items-center gap-1 ${
-            pathname === '/operators' ? 'text-amber-400 font-bold' : 'hover:text-slate-200'
-          }`}
-        >
-          <Users className="w-5 h-5 text-emerald-400" />
-          <span>Operadores</span>
-        </Link>
+        {(isSupervisor || isAdmin) && (
+          <Link
+            href="/operators"
+            className={`flex flex-col items-center gap-1 ${
+              pathname === '/operators' ? 'text-amber-400 font-bold' : 'hover:text-slate-200'
+            }`}
+          >
+            <Users className="w-5 h-5 text-emerald-400" />
+            <span>Operadores</span>
+          </Link>
+        )}
 
-        <button
-          onClick={() => setIsJsonOpen(true)}
-          className="flex flex-col items-center gap-1 hover:text-slate-200"
-        >
-          <Code className="w-5 h-5 text-amber-400" />
-          <span>JSON</span>
-        </button>
+        {(isAdmin || isSupervisor) && (
+          <button
+            onClick={() => setIsUserManagementOpen(true)}
+            className="flex flex-col items-center gap-1 hover:text-slate-200 text-amber-400 font-bold"
+          >
+            <UserPlus className="w-5 h-5" />
+            <span>Accesos</span>
+          </button>
+        )}
       </div>
+
+      {/* User Management Modal */}
+      <UserManagementModal
+        isOpen={isUserManagementOpen}
+        onClose={() => setIsUserManagementOpen(false)}
+      />
 
       {/* JSON Viewer Modal */}
       <JsonModal isOpen={isJsonOpen} onClose={() => setIsJsonOpen(false)} />
     </>
   );
 };
+

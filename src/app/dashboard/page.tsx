@@ -42,17 +42,28 @@ export default function DashboardPage() {
     return <DashboardSkeleton />;
   }
 
-  // Compute KPIs
-  const totalReports = reports.length;
-  const totalHoursWorked = reports.reduce((acc, curr) => {
+  // Filter base reports by role (Operador sees only their own reports)
+  const isOperador = currentUser?.rol === 'Operador';
+  const roleBaseReports = reports.filter((r) => {
+    if (isOperador && currentUser?.nombre) {
+      const opNameClean = currentUser.nombre.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      const repOpClean = r.operador.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+      return repOpClean.includes(opNameClean) || opNameClean.includes(repOpClean);
+    }
+    return true;
+  });
+
+  // Compute KPIs based on roleBaseReports
+  const totalReports = roleBaseReports.length;
+  const totalHoursWorked = roleBaseReports.reduce((acc, curr) => {
     const hours = parseFloat(curr.horometro?.totalHoras || '0');
     return acc + (isNaN(hours) ? 0 : hours);
   }, 0);
-  const activeMachines = new Set(reports.map((r) => r.maquina)).size;
-  const pendingApprovals = reports.filter((r) => r.estado === 'Pendiente V°B°' || r.estado === 'Borrador').length;
+  const activeMachines = new Set(roleBaseReports.map((r) => r.maquina)).size;
+  const pendingApprovals = roleBaseReports.filter((r) => r.estado === 'Pendiente V°B°' || r.estado === 'Borrador').length;
 
   // Filtered reports
-  const filteredReports = reports.filter((report) => {
+  const filteredReports = roleBaseReports.filter((report) => {
     const matchesSearch =
       report.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
       report.faena.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -65,7 +76,7 @@ export default function DashboardPage() {
     return matchesSearch && matchesFaena && matchesStatus;
   });
 
-  const faenasList = ['Todas', ...Array.from(new Set(reports.map((r) => r.faena)))];
+  const faenasList = ['Todas', ...Array.from(new Set(roleBaseReports.map((r) => r.faena)))];
 
   const handleOpenJsonForReport = (id?: string) => {
     setJsonTargetId(id);
@@ -80,15 +91,30 @@ export default function DashboardPage() {
           <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-2xl pointer-events-none" />
 
           <div className="space-y-2 z-10">
-            <div className="flex items-center space-x-2 text-amber-400 text-xs font-semibold uppercase tracking-wider">
-              <Sparkles className="w-4 h-4" />
-              <span>Panel Operativo de Control de Grúas</span>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="flex items-center space-x-1.5 text-amber-400 text-xs font-semibold uppercase tracking-wider bg-amber-500/10 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+                <Sparkles className="w-3.5 h-3.5" />
+                <span>Panel Operativo BURGER</span>
+              </span>
+              <span className={`text-xs font-bold px-2.5 py-0.5 rounded-full border ${
+                currentUser?.rol === 'Operador'
+                  ? 'bg-amber-500/20 text-amber-400 border-amber-500/40'
+                  : currentUser?.rol === 'Supervisor'
+                  ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/40'
+                  : currentUser?.rol === 'Administrador'
+                  ? 'bg-blue-500/20 text-blue-400 border-blue-500/40'
+                  : 'bg-purple-500/20 text-purple-400 border-purple-500/40'
+              }`}>
+                Rol Activo: {currentUser?.rol || 'Operador'}
+              </span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-black text-white">
               Bienvenido, {currentUser?.nombre || 'Operador'}
             </h1>
             <p className="text-slate-400 text-xs sm:text-sm max-w-xl">
-              Sistema digital de control para <span className="text-amber-400 font-semibold">Burger Grúas</span>. Registre y revise vales diarios de trabajo en terreno.
+              {currentUser?.rol === 'Operador'
+                ? 'Perfil Operador de Terreno: Ud. puede registrar nuevos vales diarios de trabajo y consultar los reportes ingresados.'
+                : 'Sistema digital de control para Burger Grúas. Registre y revise vales diarios de trabajo en terreno.'}
             </p>
           </div>
 
@@ -97,15 +123,17 @@ export default function DashboardPage() {
               onClick={() => handleOpenJsonForReport()}
               className="flex items-center gap-2 px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 rounded-xl text-xs font-bold transition-all shadow-md"
             >
-              <Code className="w-4 h-4" /> Ver JSON de Datos
+              <Code className="w-4 h-4" /> Ver JSON
             </button>
 
-            <Link
-              href="/reports/new"
-              className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg transition-all"
-            >
-              <PlusCircle className="w-4 h-4" /> Registrar Nuevo Reporte
-            </Link>
+            {currentUser?.rol !== 'Cliente' && (
+              <Link
+                href="/reports/new"
+                className="flex items-center gap-2 px-5 py-2.5 bg-amber-500 hover:bg-amber-400 text-slate-950 rounded-xl text-xs font-extrabold shadow-lg transition-all"
+              >
+                <PlusCircle className="w-4 h-4" /> Registrar Nuevo Reporte
+              </Link>
+            )}
           </div>
         </div>
 
@@ -134,56 +162,62 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Operational Alert Banners Grid (Operators + Maintenance) */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {/* Operators Accreditation Alert Card */}
-          <div className="bg-slate-900 border border-amber-500/40 rounded-xl p-4 flex items-center justify-between gap-3 text-xs shadow-lg">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg">
-                <AlertCircle className="w-5 h-5" />
+        {/* Operational Alert Banners Grid (Operators + Maintenance - Hidden for Operador) */}
+        {currentUser?.rol !== 'Operador' && currentUser?.rol !== 'Cliente' && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Operators Accreditation Alert Card (Supervisor & Admin) */}
+            {(currentUser?.rol === 'Supervisor' || currentUser?.rol === 'Administrador') && (
+              <div className="bg-slate-900 border border-amber-500/40 rounded-xl p-4 flex items-center justify-between gap-3 text-xs shadow-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-amber-500/20 text-amber-400 border border-amber-500/30 rounded-lg">
+                    <AlertCircle className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2">
+                      <span>Acreditación Operadores</span>
+                      <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold">2 Alertas</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-snug">
+                      Examen Raúl Solorza (vence 12d) • Licencia Marcelo Silva (Vencida).
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/operators"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-lg transition-colors whitespace-nowrap text-xs"
+                >
+                  Ver Operadores
+                </Link>
               </div>
-              <div>
-                <p className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2">
-                  <span>Acreditación Operadores</span>
-                  <span className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold">2 Alertas</span>
-                </p>
-                <p className="text-[11px] text-slate-400 leading-snug">
-                  Examen Raúl Solorza (vence 12d) • Licencia Marcelo Silva (Vencida).
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/operators"
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-lg transition-colors whitespace-nowrap text-xs"
-            >
-              Ver Operadores
-            </Link>
-          </div>
+            )}
 
-          {/* Maintenance Horómetro Alert Card */}
-          <div className="bg-slate-900 border border-rose-500/40 rounded-xl p-4 flex items-center justify-between gap-3 text-xs shadow-lg">
-            <div className="flex items-center space-x-3">
-              <div className="p-2 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg">
-                <Clock className="w-5 h-5" />
+            {/* Maintenance Horómetro Alert Card (Mecánico & Admin) */}
+            {(currentUser?.rol === 'Mecánico' || currentUser?.rol === 'Administrador') && (
+              <div className="bg-slate-900 border border-rose-500/40 rounded-xl p-4 flex items-center justify-between gap-3 text-xs shadow-lg">
+                <div className="flex items-center space-x-3">
+                  <div className="p-2 bg-rose-500/20 text-rose-400 border border-rose-500/30 rounded-lg">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2">
+                      <span>Mantenciones & Horómetros</span>
+                      <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-full text-[10px] font-bold">1 En Taller</span>
+                    </p>
+                    <p className="text-[11px] text-slate-400 leading-snug">
+                      GROVE 5250 (Próxima pauta 15h) • DEMAG AC250 en reparación hidráulica.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/maintenance"
+                  className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-lg transition-colors whitespace-nowrap text-xs"
+                >
+                  Ver Bitácora
+                </Link>
               </div>
-              <div>
-                <p className="font-extrabold text-white text-xs sm:text-sm flex items-center gap-2">
-                  <span>Mantenciones & Horómetros</span>
-                  <span className="px-2 py-0.5 bg-rose-500/20 text-rose-400 rounded-full text-[10px] font-bold">1 En Taller</span>
-                </p>
-                <p className="text-[11px] text-slate-400 leading-snug">
-                  GROVE 5250 (Próxima pauta 15h) • DEMAG AC250 en reparación hidráulica.
-                </p>
-              </div>
-            </div>
-            <Link
-              href="/maintenance"
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 font-bold rounded-lg transition-colors whitespace-nowrap text-xs"
-            >
-              Ver Bitácora
-            </Link>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Metric Cards (KPIs) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

@@ -41,7 +41,24 @@ export interface ReportItem {
 }
 
 export interface UserSession {
+  id?: string;
   nombre: string;
-  rol: 'Operador' | 'Supervisor' | 'Administrador' | 'Cliente';
+  rol: 'Operador' | 'Supervisor' | 'Administrador' | 'Cliente' | 'Mecánico';
   cargo: string;
+  email?: string;
+  rut?: string;
 }
+
+export interface UserAccount {
+  id: string;
+  rut: string;
+  nombre: string;
+  email: string;
+  password: string;
+  rol: 'Operador' | 'Supervisor' | 'Administrador' | 'Cliente' | 'Mecánico';
+  cargo: string;
+  faena: string;
+  createdAt: string;
+}
+
+
